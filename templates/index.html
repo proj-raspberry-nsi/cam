@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+     <!-- <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" /> -->
+    <title>camera preview</title>
+    <script>
+        const serverTime = new Date( {{streamTime}} *1000);
+        var recording = false;
+        var blinkingTime = 0;
+        function flipBlinking(element) {
+            recPastSecs = document.getElementById('recPastSecs');
+            if (recording === true) {
+                element.className = "menuBox";
+                recPastSecs.className = "menuBox";
+                recPastSecs.disabled = false;
+                recording=false;
+            } else {
+                element.className = "menuBox startRecBlinking";
+                recPastSecs.className = "menuBox unclickable";
+                recPastSecs.disabled = true;
+                recording=true;
+            }
+            console.log(recPastSecs.disabled);
+        }
+        function downloadImg() {
+            document.getElementById('download_img').click();
+        }
+        function test() {
+            console.log("dbshsjkd");
+        }
+    </script>
+    <script src="https://kit.fontawesome.com/e4d944b0e6.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="container">
+        <img src="{{ url_for('video_feed') }}" id="feed">
+        <div id="params">
+            <h3>Live Streaming</h3>
+            <div id="menu">
+                <div class="menuBox" id="streamTime"><p>stream time <span class="streamTime" id="streamTimeData"></span></p></div>
+                <div class="menuBox" id="gif_clock"><div id="stopwatch"></div></div>
+                <div class="menuBox" id="latency"><p>latency <span class="latency" id="latencyData"></span></p></div>
+
+                <button class="menuBox" id="takePic" onclick='downloadImg()'><i class="fas fa-camera"></i></button>
+                <button class="menuBox" id="startRec" onclick="flipBlinking(this)"></button>
+                <button class="menuBox" id="recPastSecs" onclick="test()"><i class="fas fa-video fa-sm"></i></button>
+            </div>
+                <script>
+                    var localTime  = new Date();
+                    var latency = localTime-serverTime;
+                    document.getElementById("latencyData").innerHTML = localTime-serverTime + "ms";
+                    setInterval(function() {
+                        let localTime  = new Date();
+                        let timeDiff = new Date(localTime-serverTime);
+                        document.getElementById('streamTimeData').innerHTML = timeDiff.getMinutes()+"m "+timeDiff.getSeconds()+"s";
+                    }, 1000);
+                </script>
+        </div>
+    </div>
+    <a id='download_img' href='{{url_for("download_current_img")}}' download></a>
+</body>
+</html>
