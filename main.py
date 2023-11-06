@@ -6,7 +6,14 @@ camera = cv2.VideoCapture(0)
 size = (int(camera.get(3)), int(camera.get(4)))
 paths = {'pics':'saved_frames','vids':'saved_videos'}
 frames = []
-bufferMaxLen = 100
+videoLen = 100
+bufferMaxLen = 500
+rec = False
+
+def resetFrames(nbFrames):
+    global frames
+    while len(frames) > nbFrames:
+        frames.pop(0)
 
 def saveVid(frames,tStart,tStop):
     framerate = len(frames)/(tStop-tStart)
@@ -18,21 +25,24 @@ def saveVid(frames,tStart,tStop):
         for frame, time in frames:
             out.write(frame)
         out.release()
+        print("nb frames",len(frames))
     except Exception as error:
+        resetFrames(videoLen)
         return error, None
     else:
+        resetFrames(videoLen)
         return None, path
 
 def gen_frames():
-    global frames
+    global frames, rec
     while True:
         success, frame = camera.read()
         if not success:
             break
         else:
-            frame = cv2.resize(frame, (240, 135))
+            frame = cv2.resize(frame, size)
             frames.append([frame, int(time.time())])
-            if len(frames) > bufferMaxLen:
+            if len(frames) > bufferMaxLen or (len(frames) > videoLen and not rec):
                 frames.pop(0)
             ret, buff = cv2.imencode('.jpg', frame)
             frame = buff.tobytes()
@@ -40,6 +50,8 @@ def gen_frames():
 
 @app.route('/')
 def menu():
+    global rec
+    print(rec)
     timeAtStart = datetime.datetime.now()
     return render_template('index.html', streamTime=timeAtStart.timestamp())
 
@@ -55,6 +67,21 @@ def download_current_img():
         cv2.imwrite(path,frame)
     return send_file(path, as_attachment=True)
 
+@app.route('/download_current_vid')
+def download_current_vid():
+    global rec, frames
+    if rec:
+        rec = False
+        res, path = saveVid(frames, frames[0][1], frames[-1][1])
+        if not res:
+            return send_file(path, as_attachment=True)
+        else:
+            return None
+    else:
+        rec = True
+        frames = []
+        return None
+
 @app.route('/download_past_vid')
 def download_past_vid():
     if frames:
@@ -63,6 +90,6 @@ def download_past_vid():
             return send_file(path, as_attachment=True)
         else:
             print(res)
-            return render_template('index.html', streamTime=1234)
+            return None
 
 Flask.run(app,debug=True)

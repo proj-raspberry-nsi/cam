@@ -12,11 +12,13 @@
         function flipBlinking(element) {
             recPastSecs = document.getElementById('recPastSecs');
             if (recording === true) {
+                document.getElementById('download_vid').click();
                 element.className = "menuBox";
                 recPastSecs.className = "menuBox";
                 recPastSecs.disabled = false;
                 recording=false;
             } else {
+                new Image().src = '{{url_for("download_current_vid")}}';
                 element.className = "menuBox startRecBlinking";
                 recPastSecs.className = "menuBox unclickable";
                 recPastSecs.disabled = true;
@@ -27,8 +29,11 @@
         function downloadImg() {
             document.getElementById('download_img').click();
         }
-        function test() {
-            console.log("dbshsjkd");
+        function downloadVid(element) {
+            flipBlinking(element)
+        }
+        function downloadPastVid() {
+            document.getElementById('download_pastvid').click();
         }
     </script>
     <script src="https://kit.fontawesome.com/e4d944b0e6.js" crossorigin="anonymous"></script>
@@ -44,8 +49,8 @@
                 <div class="menuBox" id="latency"><p>latency <span class="latency" id="latencyData"></span></p></div>
 
                 <button class="menuBox" id="takePic" onclick='downloadImg()'><i class="fas fa-camera"></i></button>
-                <button class="menuBox" id="startRec" onclick="flipBlinking(this)"></button>
-                <button class="menuBox" id="recPastSecs" onclick="test()"><i class="fas fa-video fa-sm"></i></button>
+                <button class="menuBox" id="startRec" onclick="downloadVid(this)"></button>
+                <button class="menuBox" id="recPastSecs" onclick="downloadPastVid()"><i class="fas fa-video fa-sm"></i></button>
             </div>
                 <script>
                     var localTime  = new Date();
@@ -60,5 +65,7 @@
         </div>
     </div>
     <a id='download_img' href='{{url_for("download_current_img")}}' download></a>
+    <a id='download_vid' href='{{url_for("download_current_vid")}}' download></a>
+    <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download></a>
 </body>
 </html>
