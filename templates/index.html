@@ -6,6 +6,14 @@
      <!-- <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" /> -->
     <title>camera preview</title>
     <script>
+        function setTheme(dark) {
+            if (dark) {document.documentElement.setAttribute('theme', 'dark');}
+            else {document.documentElement.setAttribute('theme', 'light');}
+        }
+        const darktheme = window.matchMedia("(prefers-color-scheme: dark)");
+        setTheme(darktheme.matches);
+        darktheme.addListener(theme => {setTheme(theme.matches);});
+
         const serverTime = new Date( {{streamTime}} *1000);
         var recording = false;
         var blinkingTime = 0;
@@ -41,9 +49,9 @@
 <body>
     <div id="container">
         <img src="{{ url_for('video_feed') }}" id="feed">
-        <div id="params">
+        <div id="menu">
             <h3>Live Streaming</h3>
-            <div id="menu">
+            <div id="params">
                 <div class="menuBox" id="streamTime"><p>stream time <span class="streamTime" id="streamTimeData"></span></p></div>
                 <div class="menuBox" id="gif_clock"><div id="stopwatch"></div></div>
                 <div class="menuBox" id="latency"><p>latency <span class="latency" id="latencyData"></span></p></div>
@@ -64,8 +72,8 @@
                 </script>
         </div>
     </div>
-    <a id='download_img' href='{{url_for("download_current_img")}}' download></a>
-    <a id='download_vid' href='{{url_for("download_current_vid")}}' download></a>
-    <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download></a>
+    <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
+    <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
+    <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download style="visibility: hidden"></a>
 </body>
 </html>

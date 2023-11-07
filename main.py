@@ -6,8 +6,8 @@ camera = cv2.VideoCapture(0)
 
 # DÉFINITION (pixels) DES IMAGES
 rawImgSize = (int(camera.get(3)), int(camera.get(4)))         # brutes
-streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
-videoImgSize  = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour l'enregistrement
+streamImgSize = (int(rawImgSize[0]/4), int(rawImgSize[1]/4))  # pour la diffusion en direct
+videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
 paths = {'pics':'saved_frames','vids':'saved_videos'} # chemins de dossiers pour les images et videos générées
 frames = [] # buffer contenant toutes les images pour l'enregistrement video (ponctuel et en continu)
@@ -33,14 +33,15 @@ def saveVid(frames,tStart:int,tStop:int)->[str,str]:
     sinon :
         - renvoie l'erreur sans arreter le programme
     """
-    framerate = len(frames)/(tStop-tStart)
-    path = f'{paths["vids"]}/vid{tStop}.avi'
+    duration = tStop-tStart
+    framerate = len(frames)/duration
+    path = f'{paths["vids"]}/vid{int(tStop)}.avi'
     try:
-        out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'MJPG'), framerate, size) # creation de la video
+        out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'MJPG'), framerate, videoImgSize) # creation de la video
         for frame, time in frames:
             out.write(frame) # ajout de chaque frame
         out.release()   # compilation de la video
-        print("nb frames",len(frames))
+        print(f"nb frames : {len(frames)}, duration : {duration}s")
     except Exception as error:
         resetFrames(videoLen) # le buffer (frames) est reset pour ne pas accumuler des données inutiles
         return error, None
@@ -63,7 +64,7 @@ def gen_frames():
             frameStream = cv2.resize(frame, streamImgSize)
 
             # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
-            frames.append([frameRecord, int(time.time())])
+            frames.append([frameRecord, time.time()])
             if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
                 frames.pop(0)
 
@@ -75,6 +76,8 @@ def gen_frames():
 # page principale
 @app.route('/')
 def menu():
+    global recording
+    recording = False
     timeAtStart = datetime.datetime.now()
     return render_template('index.html', streamTime=timeAtStart.timestamp())
 
@@ -92,23 +95,24 @@ def download_current_img():
         cv2.imwrite(path,frame) # enregistrement de l'image
         return send_file(path, as_attachment=True) # envoi du fichier
     else:
-        return None
+        return Response(status=204)
 
 # lien de capture puis de télechargement d'une video
 @app.route('/download_current_vid')
 def download_current_vid():
     global recording, frames
     if recording: # si l'enregistrement est en cours
-        recording = False # arret de l'enregistrement
-        res, path = saveVid(frames, frames[0][1], frames[-1][1]) # compilation de la video
-        if not res: # si la compilation s'est déroulée comme prévu
-            return send_file(path, as_attachment=True) # envoi du fichier
+        if frames:
+            recording = False # arret de l'enregistrement
+            res, path = saveVid(frames, frames[0][1], frames[-1][1]) # compilation de la video
+            if not res: # si la compilation s'est déroulée comme prévu
+                return send_file(path, as_attachment=True) # envoi du fichier
         else:
-            return None
+            print(frames)
     else:
         recording = True # debut de l'enregistrement
         frames = [] # réinitialisation du buffer
-        return None
+    return Response(status=204)
 
 # lien télechargement de la video en prise en continu
 @app.route('/download_past_vid')
@@ -119,6 +123,6 @@ def download_past_vid():
             return send_file(path, as_attachment=True) # envoi du fichier
         else:
             print(res) # sinon, affichage de l'erreur
-            return None
+    return Response(status=204)
 
 Flask.run(app,debug=True)

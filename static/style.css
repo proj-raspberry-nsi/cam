@@ -1,41 +1,72 @@
+:root, [theme="light"] {
+    --body-txt-color: black;
+    --bg-color: rgb(255,255,255);
+    --feed-brd-color: rgba(0,0,0,0.5);
+    --menu-bg-color: rgb(224,224,224);
+    --menubox-bg-color: rgb(197,197,197);
+    --icon-color: rgb(255,255186,255);
+    --takepic-bg-color: rgb(63,251,71);
+    --startRec-bg-color: rgb(251,71,63);
+    --recPastSecs-bg-color: rgb(251,71,63);
+    --disabled-button-bg-color: gray;
+    --disabled-button-opacity: 0.2;
+}
+
+[theme="dark"] {
+    --body-txt-color: rgb(200,200,200);
+    --bg-color: rgb(12,12,12);
+    --feed-brd-color: rgb(0,0,0);
+    --menu-bg-color: rgb(35,35,35);
+    --menubox-bg-color: rgb(64,64,64);
+    --icon-color: rgb(240,240,240);
+    --takepic-bg-color: rgb(60,186,54);
+    --startRec-bg-color: rgb(186,54,60);
+    --recPastSecs-bg-color: rgb(186,54,60);
+    --disabled-button-bg-color: gray;
+    --disabled-button-opacity: 0.2;
+}
+
 body {
     margin: 0;
     padding: 0;
     height: 100%;
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--body-txt-color);
 }
 
 #container {
     margin: 0;
     padding: 0;
     height: 100%;
-    box-sizing: border-box;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    position:fixed;
 }
 
 #feed {
     width: 72%;
     margin: 1% .5% 1% 1%;
     float: left;
-    border: solid 2px rgba(0,0,0,0.5);
+    border: solid 2px var(--feed-brd-color);
     box-sizing: border-box;
     border-radius: 10px;
 }
 
-#params {
+#menu {
     width: 25%;
     margin: 1% 1% 1% .5%;
     padding: 1%;
     float: right;
     box-sizing: border-box;
     border-radius: 10px;
-    background-color: rgba(0,0,0,0.12);
+    background-color: var(--menu-bg-color);
     text-align: center;
 }
 
-#menu {
+#params {
     border-radius: 10px;
     display: grid;
     gap: 10px;
@@ -44,7 +75,7 @@ body {
 }
 
 .menuBox {
-    background-color: rgb(0,0,0,0.15);
+    background-color: var(--menubox-bg-color);
     border-radius: inherit;
     box-sizing: border-box;
     margin: 0;
@@ -76,8 +107,8 @@ body {
 }
 
 #takePic {
-    background-color: rgb(63,251,71);
-    color: white;
+    background-color: var(--takepic-bg-color);
+    color: var(--icon-color);
     font-size: 190%;
     display: flex;
     align-items: center;
@@ -106,7 +137,7 @@ body {
     height: 100%;
     border: 0;
     overflow: hidden;
-    background-color: rgb(251,71,63);
+    background-color: var(--startRec-bg-color);
 }
 
 #startRec::before, #startRec::after {
@@ -116,8 +147,8 @@ body {
     font-variant: normal;
     text-rendering: auto;
     -webkit-font-smoothing: antialiased;
-    background-color: rgb(251,71,63);
-    color: white;
+    background-color: var(--startRec-bg-color);
+    color: var(--icon-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,18 +184,18 @@ body {
 
 @keyframes blink{
     50% {
-        background-color: rgb(251,71,63);
-        color: white;
+        background-color: var(--startRec-bg-color);
+        color: var(--icon-color);
     }
     100% {
-        background-color: white;
-        color: rgb(251,71,63);
+        background-color: var(--icon-color);
+        color: var(--startRec-bg-color);
     }
 }
 
 #recPastSecs {
-    background-color: rgb(251,71,63);
-    color: white;
+    background-color: var(--recPastSecs-bg-color);
+    color: var(--icon-color);
     font-size: 200%;
     display: flex;
     align-items: center;
@@ -183,7 +214,7 @@ body {
 #recPastSecs:not(:active) {
     width: 100%;
     height: 100%;
-}
+}m
 
 #recPastSecs.unclickable {
     pointer-events: none;
@@ -193,19 +224,15 @@ body {
 
 @keyframes disableButton {
     100% {
-        background-color: gray;
-        opacity: .2;
+        background-color: var(--disabled-button-bg-color);
+        opacity: var(--disabled-button-opacity);
     }
 }
 
-.data {
-    float: right;
-}
-
 .streamTime {
-    color:crimson;
+    color: rgb(251,71,63);
 }
 
 .latency {
-    color:blue;
+    color: rgb(63,71,251);
 }
