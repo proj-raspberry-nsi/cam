@@ -3,19 +3,26 @@ import cv2, datetime, math, time
 
 app = Flask(__name__)
 camera = cv2.VideoCapture(0)
+font = cv2.FONT_HERSHEY_DUPLEX
 
 # DÉFINITION (pixels) DES IMAGES
 rawImgSize = (int(camera.get(3)), int(camera.get(4)))         # brutes
 streamImgSize = (int(rawImgSize[0]/4), int(rawImgSize[1]/4))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
-paths = {'pics':'saved_frames','vids':'saved_videos'} # chemins de dossiers pour les images et videos générées
+paths = {'pics':'data/saved_frames','vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
 frames = [] # buffer contenant toutes les images pour l'enregistrement video (ponctuel et en continu)
 recording = False # booléen : True lorqu'un enregistrement ponctuel est en cours
 
 # NOMBRE DE FRAMES MAXIMALES
-videoLen = 100     # pour la video en continu
-bufferMaxLen = 500 # pour un enregistrement ponctuel
+videoLen = 300     # pour la video en continu
+bufferMaxLen = 800 # pour un enregistrement ponctuel
+def timestampImg(img, timestamp, screensize, font, scale=1, color=(0, 100, 255), thickness=1):
+    now = datetime.datetime.fromtimestamp(int(timestamp))
+    text = now.strftime("%H:%M:%S %d/%m/%Y")
+    pos = (50, screensize[1] - 50)
+    img = cv2.putText(img, text, pos, font, scale, color, thickness, cv2.LINE_AA, False)
+    return img
 
 def resetFrames(n:int):
     u"""
@@ -39,6 +46,7 @@ def saveVid(frames,tStart:int,tStop:int)->[str,str]:
     try:
         out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'MJPG'), framerate, videoImgSize) # creation de la video
         for frame, time in frames:
+            frame = timestampImg(frame, int(time), videoImgSize, font)
             out.write(frame) # ajout de chaque frame
         out.release()   # compilation de la video
         print(f"nb frames : {len(frames)}, duration : {duration}s")
@@ -91,7 +99,9 @@ def video_feed():
 def download_current_img():
     success, frame = camera.read()
     if success: # si la camera est disponible
-        path = f'{paths["pics"]}/img{int(datetime.datetime.now().timestamp())}.jpg' # créatiion du chemin de dossier pour l'enregistrement
+        timestamp = int(datetime.datetime.now().timestamp())
+        path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
+        frame = timestampImg(frame, timestamp, videoImgSize, font)
         cv2.imwrite(path,frame) # enregistrement de l'image
         return send_file(path, as_attachment=True) # envoi du fichier
     else:

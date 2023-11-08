@@ -7,7 +7,7 @@
     --icon-color: rgb(255,255186,255);
     --takepic-bg-color: rgb(63,251,71);
     --startRec-bg-color: rgb(251,71,63);
-    --recPastSecs-bg-color: rgb(251,71,63);
+    --recPastSecs-bg-color: rgb(251, 129, 63);
     --disabled-button-bg-color: gray;
     --disabled-button-opacity: 0.2;
 }
@@ -21,7 +21,7 @@
     --icon-color: rgb(240,240,240);
     --takepic-bg-color: rgb(60,186,54);
     --startRec-bg-color: rgb(186,54,60);
-    --recPastSecs-bg-color: rgb(186,54,60);
+    --recPastSecs-bg-color: rgb(210, 108, 53);
     --disabled-button-bg-color: gray;
     --disabled-button-opacity: 0.2;
 }
@@ -81,29 +81,10 @@ body {
     margin: 0;
 }
 
-#streamTime {
-    grid-column: 1 / 3;
-    grid-row: 1;
-}
-
-#latency {
-    grid-column: 1 / 3;
-    grid-row: 2;
-}
-
-#gif_clock {
-    grid-column: 3;
-    grid-row: 1 / 3;
+#histVids {
+    grid-column: 1 / 4;
+    grid-row: 2 / 4;
     padding: 10%;
-}
-
-#stopwatch {
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: cover;
-    width: 100%;
-    height: 100%;
-    opacity: 0.5;
 }
 
 #takePic {
@@ -114,7 +95,7 @@ body {
     align-items: center;
     justify-content: center;
     grid-column: 1 / 2;
-    grid-row: 3;
+    grid-row: 1;
     padding: 10%;
     border: none;
     margin: auto;
@@ -132,7 +113,7 @@ body {
 #startRec {
     position: relative;
     grid-column: 2 / 3;
-    grid-row: 3;
+    grid-row: 1;
     width: 100%;
     height: 100%;
     border: 0;
@@ -201,7 +182,7 @@ body {
     align-items: center;
     justify-content: center;
     grid-column: 3 / 4;
-    grid-row: 3;
+    grid-row: 1;
     padding: 10%;
     border: none;
     margin: auto;
