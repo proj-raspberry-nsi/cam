@@ -2,7 +2,8 @@ from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import uvicorn, cv2, datetime, time
+import uvicorn, cv2, datetime
+import telegramBot # import du programme qui gère la conversation via telegram
 import numpy as np
 
 app = FastAPI()
@@ -17,13 +18,20 @@ rawImgSize = (int(camera.get(3)), int(camera.get(4)))         # brutes
 streamImgSize = (int(rawImgSize[0]/4), int(rawImgSize[1]/4))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
-paths = {'pics':'data/saved_frames','vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
+paths = {'pics':'data/saved_frames',
+         'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
 frames = [] # buffer contenant toutes les images pour l'enregistrement video (ponctuel et en continu)
 recording = False # booléen : True lorqu'un enregistrement ponctuel est en cours
 
 # NOMBRE DE FRAMES MAXIMALES
 videoLen = 300     # pour la video en continu
 bufferMaxLen = 800 # pour un enregistrement ponctuel
+
+# INITIALISATION DU BOT TELEGRAM
+with open('telegramToken.bin', 'rb') as file: # récupération du token
+    telegramToken = file.read().decode()
+telegram = telegramBot.MessageBot(telegramToken) # initialisation
+telegram.chatID = -4079156108 # ID de la conversation
 
 def timestampImg(img, timestamp:int, screensize:(int,int), font, scale=1, color=(0, 100, 255), thickness=1):
     u"""
@@ -51,13 +59,20 @@ def saveVid(frames,tStart:int,tStop:int)->[str,str]:
     sinon :
         - renvoie l'erreur sans arreter le programme
     """
+    i=0
+    while i < len(frames): # retire les quelques images prises après la fin de la vidéo
+        if frames[i][1] > tStop:
+            frames.pop(i)
+        else:
+            i+=1
+
     duration = tStop-tStart
-    framerate = len(frames)/duration
+    framerate = len(frames) / duration # choix du framerate en fonction du nombre d'images
     path = f'{paths["vids"]}/vid{int(tStop)}.avi'
     try:
         out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*'MJPG'), framerate, videoImgSize) # creation de la video
         for frame, time in frames:
-            frame = timestampImg(frame, int(time), videoImgSize, font)
+            frame = timestampImg(frame, int(time), videoImgSize, font) # ajout de l'heure en bas à gauche de chaque frame
             out.write(frame) # ajout de chaque frame
         out.release()   # compilation de la video
         print(f"nb frames : {len(frames)}, duration : {duration}s")
@@ -83,7 +98,7 @@ def gen_frames():
             frameStream = cv2.resize(frame, streamImgSize)
 
             # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
-            frames.append([frameRecord, time.time()])
+            frames.append([frameRecord, datetime.datetime.now().timestamp()])
             if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
                 frames.pop(0)
 
@@ -97,7 +112,7 @@ def gen_frames():
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request):
     global recording
-    recording = False
+    recording = False # arrète tout enregistrement potentiel si la page est re-chargée
     return templates.TemplateResponse("index.html", {"request": request})
 
 # video en continu (stream) utilisée par la page principale
@@ -112,7 +127,7 @@ def download_current_img():
     if success: # si la camera est disponible
         timestamp = int(datetime.datetime.now().timestamp())
         path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
-        frame = timestampImg(frame, timestamp, videoImgSize, font)
+        frame = timestampImg(frame, timestamp, videoImgSize, font) # ajout de l'heure en bas à gauche de l'image
         cv2.imwrite(path,frame) # enregistrement de l'image
         return FileResponse(path) # envoi du fichier
     else:
@@ -125,7 +140,9 @@ def download_current_vid():
     if recording: # si l'enregistrement est en cours
         if frames:
             recording = False # arret de l'enregistrement
-            res, path = saveVid(frames, frames[0][1], frames[-1][1]) # compilation de la video
+            timestamp = int(datetime.datetime.now().timestamp())
+            vid = frames.copy() # création d'une copie (indépendante) de la liste d'images pour éviter que d'autres frames ne soient ajoutées pendant l'execution de "saveVid"
+            res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
             if not res: # si la compilation s'est déroulée comme prévu
                 return FileResponse(path) # envoi du fichier
         else:
@@ -139,7 +156,9 @@ def download_current_vid():
 @app.get('/download_past_vid')
 def download_past_vid():
     if frames: # si l'enregistrement en continu a débuté
-        res, path = saveVid(frames,frames[0][1],frames[-1][1]) # compilation de la video
+        timestamp = int(datetime.datetime.now().timestamp())
+        vid = frames.copy()
+        res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
         if not res: # si la compilation s'est déroulée comme prévu
             return FileResponse(path) # envoi du fichier
         else:
