@@ -4,7 +4,7 @@ class MessageBot:
     def __init__(self, token, chatID=None):
         self.token = token
         self.chatID = chatID
-tm
+
     def getUpdates(self):
         resp = requests.get(f'https://api.telegram.org/bot{self.token}/getUpdates')
         return resp.status_code, resp.content
