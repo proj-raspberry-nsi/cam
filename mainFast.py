@@ -11,6 +11,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 camera = cv2.VideoCapture(0) # initialisation de la picamera
+fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+camera.set(cv2.CAP_PROP_FOURCC, fourcc)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 # DÉFINITION (pixels) DES IMAGES
