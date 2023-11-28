@@ -15,8 +15,8 @@ fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 # DÉFINITION (pixels) DES IMAGES
-rawImgSize = (int(camera.get(3)/4), int(camera.get(4)/4))         # brutes
-streamImgSize = (int(rawImgSize[0]/1.5), int(rawImgSize[1]/1.5))  # pour la diffusion en direct
+rawImgSize = (int(camera.get(3)/2), int(camera.get(4)/2))         # brutes
+streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 camera.set(cv2.CAP_PROP_FOURCC, fourcc)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, rawImgSize[0])
