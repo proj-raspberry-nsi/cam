@@ -16,11 +16,12 @@ font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure s
 
 # DÉFINITION (pixels) DES IMAGES
 rawImgSize = (int(camera.get(3)/4), int(camera.get(4)/4))         # brutes
-streamImgSize = (int(rawImgSize[0]/4), int(rawImgSize[1]/4))  # pour la diffusion en direct
+streamImgSize = (int(rawImgSize[0]/1.5), int(rawImgSize[1]/1.5))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 camera.set(cv2.CAP_PROP_FOURCC, fourcc)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, rawImgSize[0])
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, rawImgSize[1])
+print(rawImgSize)
 
 paths = {'pics':'data/saved_frames',
          'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
