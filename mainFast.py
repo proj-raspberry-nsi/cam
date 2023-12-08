@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Res
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from picamera2 import Picamera2
+from libcamera import controls
 import uvicorn, cv2, datetime
 import telegramBot # import du programme qui gère la conversation via telegram
 import numpy as np
