@@ -94,6 +94,7 @@ def gen_frames():
     global frames, recording
     while True:
         frame = camera.capture_array("main")
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         # on redimensionne les images
         frameRecord = cv2.resize(frame, videoImgSize)
         frameStream = cv2.resize(frame, streamImgSize)
@@ -125,6 +126,7 @@ async def video_feed():
 @app.get('/download_current_img')
 def download_current_img():
     frame = camera.capture_array("main")
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     if frame.shape == rawImgSize: # si la camera est disponible
         timestamp = int(datetime.datetime.now().timestamp())
         path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
