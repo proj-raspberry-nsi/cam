@@ -18,7 +18,7 @@ camera.set_controls({"AfMode": controls.AfModeEnum.Continuous})
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 # DÉFINITION (pixels) DES IMAGES
-rawImgSize = picam2.preview_configuration.main.size         # brutes
+rawImgSize = camera.preview_configuration.main.size         # brutes
 streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
