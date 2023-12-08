@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from picamera2 import Picamera2
 import uvicorn, cv2, datetime
 import telegramBot # import du programme qui gère la conversation via telegram
 import numpy as np
@@ -10,18 +11,15 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-camera = cv2.VideoCapture(0) # initialisation de la picamera
-fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+camera = Picamera2() # initialisation de la picamera
+camera.start()
+camera.set_controls({"AfMode": controls.AfModeEnum.Continuous})
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 # DÉFINITION (pixels) DES IMAGES
-rawImgSize = (int(camera.get(3)/2), int(camera.get(4)/2))         # brutes
+rawImgSize = picam2.preview_configuration.main.size         # brutes
 streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
-camera.set(cv2.CAP_PROP_FOURCC, fourcc)
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, rawImgSize[0])
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, rawImgSize[1])
-print(rawImgSize)
 
 paths = {'pics':'data/saved_frames',
          'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
@@ -94,23 +92,20 @@ def gen_frames():
     """
     global frames, recording
     while True:
-        success, frame = camera.read()
-        if not success:
-            break
-        else: # si la camera est disponible
-            # on redimensionne les images
-            frameRecord = cv2.resize(frame, videoImgSize)
-            frameStream = cv2.resize(frame, streamImgSize)
+        frame = camera.capture_array("main")
+        # on redimensionne les images
+        frameRecord = cv2.resize(frame, videoImgSize)
+        frameStream = cv2.resize(frame, streamImgSize)
 
-            # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
-            frames.append([frameRecord, datetime.datetime.now().timestamp()])
-            if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
-                frames.pop(0)
+        # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
+        frames.append([frameRecord, datetime.datetime.now().timestamp()])
+        if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
+            frames.pop(0)
 
-            # encodage de l'image pour le stream
-            ret, buff = cv2.imencode('.jpg', frameStream)
-            frameStream = buff.tobytes()
-            yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frameStream + b'\r\n')
+        # encodage de l'image pour le stream
+        ret, buff = cv2.imencode('.jpg', frameStream)
+        frameStream = buff.tobytes()
+        yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frameStream + b'\r\n')
 
 
 # page principale
@@ -128,8 +123,8 @@ async def video_feed():
 # lien de capture et télechargement d'une image
 @app.get('/download_current_img')
 def download_current_img():
-    success, frame = camera.read()
-    if success: # si la camera est disponible
+    frame = camera.capture_array("main")
+    if frame.shape == rawImgSize: # si la camera est disponible
         timestamp = int(datetime.datetime.now().timestamp())
         path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
         frame = timestampImg(frame, timestamp, videoImgSize, font) # ajout de l'heure en bas à gauche de l'image
