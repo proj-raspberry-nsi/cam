@@ -15,6 +15,8 @@ templates = Jinja2Templates(directory="templates")
 camera = Picamera2() # initialisation de la picamera
 camera.start()
 camera.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+camera_config = camera.create_still_configuration({"size":(1280, 720)})
+camera.configure(camera_config)
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 # DÉFINITION (pixels) DES IMAGES
