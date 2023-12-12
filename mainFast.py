@@ -127,6 +127,7 @@ async def video_feed():
 def download_current_img():
     frame = camera.capture_array("main")
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    print("img :", frame.shape[:1], (rawImgSize[1], rawImgSize[0]))
     if frame.shape[:1] == (rawImgSize[1], rawImgSize[0]): # si la camera est disponible
         timestamp = int(datetime.datetime.now().timestamp())
         path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
