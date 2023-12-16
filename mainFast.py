@@ -12,17 +12,17 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
+# DÉFINITION (pixels) DES IMAGES
+rawImgSize    = (1280, 720)      # brutes
+streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
+videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
+
 camera = Picamera2() # initialisation de la picamera
 camera.set_controls({"AfMode": controls.AfModeEnum.Continuous})
-camera_config = camera.create_still_configuration({"size":(1280, 720)})
+camera_config = camera.create_still_configuration({"size":rawImgSize})
 camera.configure(camera_config)
 camera.start()
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
-
-# DÉFINITION (pixels) DES IMAGES
-rawImgSize = camera.preview_configuration.main.size         # brutes
-streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
-videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
 paths = {'pics':'data/saved_frames',
          'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
