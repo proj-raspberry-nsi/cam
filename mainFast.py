@@ -4,9 +4,23 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from picamera2 import Picamera2
 from libcamera import controls
-import uvicorn, cv2, datetime
+import uvicorn, cv2, datetime, os
 import telegramBot # import du programme qui gère la conversation via telegram
+import dbManager as database # import du programme qui gère la base de données
 import numpy as np
+
+db = database.database("database.db")
+if not db.getTables():
+    db.createTable("fileStorage", {"ID_F":"INT PRIMARY KEY",
+                                   "PATH_F":"TEXT",
+                                   "DATE_F":"INT",
+                                   "SIZE_F":"SMALLINT",
+                                   "TYPE_F": "BIT"})
+    db.createTable("fileMetaData", {"ID_F": "INT PRIMARY KEY",
+                                    "MANUAL_OR_AUTO": "BIT",
+                                    "NB_PEOPLE": "TINYINT",
+                                    "NB_PETS": "TINYINT"})
+db.close()
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -14,7 +28,7 @@ templates = Jinja2Templates(directory="templates")
 
 # DÉFINITION (pixels) DES IMAGES
 rawImgSize    = (1280, 720)      # brutes
-streamImgSize = (int(rawImgSize[0]/2), int(rawImgSize[1]/2))  # pour la diffusion en direct
+streamImgSize = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour la diffusion en direct
 videoImgSize  = (int(rawImgSize[0]), int(rawImgSize[1]))  # pour l'enregistrement
 
 camera = Picamera2() # initialisation de la picamera
@@ -38,6 +52,19 @@ with open('telegramToken.bin', 'rb') as file: # récupération du token
     telegramToken = file.read().decode()
 telegram = telegramBot.MessageBot(telegramToken) # initialisation
 telegram.chatID = -4079156108 # ID de la conversation
+
+def saveToDB(path, timestamp, vid_or_pic, manual_or_auto):
+    db = database.database("database.db")
+    if db.getCol("fileStorage", "ID_F"):
+        id = max(db.getCol("fileStorage", "ID_F")) + 1
+    else:
+        id = 0
+    size = round(os.path.getsize(path)/1e5)
+    storage = [id, path, timestamp, size, vid_or_pic]
+    metaDat = [id, manual_or_auto, 0, 0]
+    db.insert("fileStorage", storage)
+    db.insert("fileMetaData", metaDat)
+    db.close()
 
 def timestampImg(img, timestamp:int, screensize:(int,int), font, scale=1, color=(0, 100, 255), thickness=1):
     u"""
@@ -134,6 +161,7 @@ def download_current_img():
         path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
         frame = timestampImg(frame, timestamp, videoImgSize, font) # ajout de l'heure en bas à gauche de l'image
         cv2.imwrite(path,frame) # enregistrement de l'image
+        saveToDB(path, timestamp, 0, 1)
         return FileResponse(path) # envoi du fichier
     else:
         return Response(status_code=204)
@@ -149,6 +177,7 @@ def download_current_vid():
             vid = frames.copy() # création d'une copie (indépendante) de la liste d'images pour éviter que d'autres frames ne soient ajoutées pendant l'execution de "saveVid"
             res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
             if not res: # si la compilation s'est déroulée comme prévu
+                saveToDB(path, timestamp, 1, 1)
                 return FileResponse(path) # envoi du fichier
         else:
             print("empty set")
@@ -165,6 +194,7 @@ def download_past_vid():
         vid = frames.copy()
         res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
         if not res: # si la compilation s'est déroulée comme prévu
+            saveToDB(path, timestamp, 1, 1)
             return FileResponse(path) # envoi du fichier
         else:
             print(res) # sinon, affichage de l'erreur

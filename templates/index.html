@@ -56,21 +56,20 @@
                 <button class="menuBox" id="takePic" onclick='downloadImg()'><i class="fas fa-camera"></i></button>
                 <button class="menuBox" id="startRec" onclick="downloadVid(this)"></button>
                 <button class="menuBox" id="recPastSecs" onclick="downloadPastVid()"><i class="fas fa-video fa-sm"></i></button>
-
-                <div class="menuBox" id="histVids"></div>
             </div>
-                <script>
-                    const options = {second:'2-digit', minute:'2-digit', hour:'numeric', day: 'numeric', month: '2-digit', year: 'numeric'};
-                    setInterval(function() {
-                        let localTime  = new Date();
-                        var datetime = localTime.toLocaleDateString('fr-FR', options)
-                        document.getElementById('localTime').innerHTML = datetime;
-                    }, 1000);
-                </script>
+            <div class="menuBox" id="histVids"></div>
         </div>
     </div>
     <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
     <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
     <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download style="visibility: hidden"></a>
+    <script>
+        const options = {second:'2-digit', minute:'2-digit', hour:'numeric', day: 'numeric', month: '2-digit', year: 'numeric'};
+        setInterval(function() {
+            let localTime  = new Date();
+            var datetime = localTime.toLocaleDateString('fr-FR', options)
+            document.getElementById('localTime').innerHTML = datetime;
+        }, 1000);
+    </script>
 </body>
 </html>
