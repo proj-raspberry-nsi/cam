@@ -50,25 +50,51 @@
     <div id="container">
         <img src="{{ url_for('video_feed') }}" id="feed">
         <div id="menu">
-            <h3 id="title">Live Streaming</h3>
-            <p id="localTime"></p>
+            <div id="menuHeader">
+                <div id="title">
+                    <h3>Live Streaming</h3>
+                </div>
+                <div id="localTimeCont">
+                    <p id="localTime"></p>
+                </div>
+            </div>
             <div id="params">
                 <button class="menuBox" id="takePic" onclick='downloadImg()'><i class="fas fa-camera"></i></button>
                 <button class="menuBox" id="startRec" onclick="downloadVid(this)"></button>
                 <button class="menuBox" id="recPastSecs" onclick="downloadPastVid()"><i class="fas fa-video fa-sm"></i></button>
             </div>
-            <div class="menuBox" id="histVids"></div>
+            {% if dataHist %}
+            <div class="menuBox" id="histVids">
+                <table id="histList">
+                    <tbody>
+                    {%for i in dataHist%}
+                        <tr class="histListElem">
+                            <td class="id">{{ i[0] }}</td> <td class="date">{{ i[1] }}</td> <td class="hour">{{ i[2] }}</td> <td class="size">{{ i[3] }}</td>
+                            <td class="type">
+                            {% if i[4] == 0 %}
+                                <i class="fas fa-camera"></i>
+                            {% else %}
+                                <i class="fas fa-video fa-sm">
+                            {% endif %}
+                            </td>
+                        </tr>
+                    {%endfor%}
+                </table>
+            </div>
+            {% endif %}
         </div>
     </div>
     <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
     <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
     <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download style="visibility: hidden"></a>
     <script>
-        const options = {second:'2-digit', minute:'2-digit', hour:'numeric', day: 'numeric', month: '2-digit', year: 'numeric'};
+        const dateOpt = {day: 'numeric', month: '2-digit', year: 'numeric'};
+        const hourOpt = {second:'2-digit', minute:'2-digit', hour:'numeric'};
         setInterval(function() {
             let localTime  = new Date();
-            var datetime = localTime.toLocaleDateString('fr-FR', options)
-            document.getElementById('localTime').innerHTML = datetime;
+            var date = localTime.toLocaleString('fr-FR', dateOpt);
+            var hour = localTime.toLocaleString('fr-FR', hourOpt);
+            document.getElementById('localTime').innerHTML = hour+"\n"+date;
         }, 1000);
     </script>
 </body>

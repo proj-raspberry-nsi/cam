@@ -138,13 +138,22 @@ def gen_frames():
         frameStream = buff.tobytes()
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frameStream + b'\r\n')
 
-
 # page principale
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request):
     global recording
     recording = False # arrète tout enregistrement potentiel si la page est re-chargée
-    return templates.TemplateResponse("index.html", {"request": request})
+    db = database.database("database.db")
+    fullTable = db.getAll("fileStorage")
+    fullTable.reverse()
+    dataHist = []
+    for i in fullTable:
+        now = datetime.datetime.fromtimestamp(int(i[2]))
+        date = now.strftime("%d/%m")
+        hour = now.strftime("%H:%M")
+        size = str(int(i[3])/10) + " Mo"
+        dataHist.append( (i[0], date, hour, size, i[4]) )
+    return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist})
 
 # video en continu (stream) utilisée par la page principale
 @app.get('/video_feed')

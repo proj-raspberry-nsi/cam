@@ -66,13 +66,35 @@ body {
     text-align: center;
 }
 
+#menuHeader {
+    display: flex;
+    margin-bottom: 3%;
+    width: 100%;
+}
+
+#title {
+    height: 100%;
+    width: 60%;
+    text-align: center;
+}
+
+#localTimeCont {
+    flex-grow: 1;
+    opacity: .8;
+    display: grid;
+	align-items: center;
+}
+
+#localTime {
+    margin: 0;
+}
+
 #params {
     border-radius: 10px;
     display: grid;
     gap: 10px;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(1, 1fr);
-    margin-bottom: 3%;
 }
 
 .menuBox {
@@ -80,14 +102,6 @@ body {
     border-radius: inherit;
     box-sizing: border-box;
     margin: 0;
-}
-
-#histVids {
-    padding: 10%;
-    width: 100%;
-    max-height: 200px;
-    overflow: hidden;
-    overflow-y:scroll;
 }
 
 #takePic {
@@ -198,7 +212,7 @@ body {
 #recPastSecs:not(:active) {
     width: 100%;
     height: 100%;
-}m
+}
 
 #recPastSecs.unclickable {
     pointer-events: none;
@@ -211,6 +225,46 @@ body {
         background-color: var(--disabled-button-bg-color);
         opacity: var(--disabled-button-opacity);
     }
+}
+
+#histVids {
+    margin-top: 10px;
+    padding: .5em .75em .75em .75em;
+    width: 100%;
+    max-height: 9.1em;
+    overflow: hidden;
+    overflow-y: scroll;
+}
+
+#histList {
+	margin: 0;
+	padding: 0;
+    width: 100%;
+}
+
+.histListElem {
+    width: 100%;
+    margin: .5em 0;
+    vertical-align: center;
+}
+
+.date {
+    width: 20%;
+}
+.hour {
+    width: 20%;
+}
+.size {
+    text-align: right;
+}
+
+td {
+    /*border: solid white 1px;*/
+}
+
+tr:hover {
+    border: solid white 1px;
+    background-color: red;
 }
 
 .streamTime {
