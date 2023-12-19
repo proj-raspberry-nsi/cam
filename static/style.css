@@ -74,8 +74,12 @@ body {
 
 #title {
     height: 100%;
-    width: 60%;
-    text-align: center;
+    width: 80%;
+    text-align: left;
+}
+
+#title > h3 {
+    margin: .5em;
 }
 
 #localTimeCont {
@@ -83,10 +87,13 @@ body {
     opacity: .8;
     display: grid;
 	align-items: center;
+    text-align: right;
+
 }
 
 #localTime {
     margin: 0;
+    width: 100px;
 }
 
 #params {
@@ -234,6 +241,9 @@ body {
     max-height: 9.1em;
     overflow: hidden;
     overflow-y: scroll;
+    cursor: ns-resize;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #histList {
@@ -244,10 +254,19 @@ body {
 
 .histListElem {
     width: 100%;
-    margin: .5em 0;
     vertical-align: center;
 }
 
+tr {
+    height: 1.25em;
+}
+tr:hover {
+    opacity: .7;
+}
+
+td {
+    padding: 0;
+}
 .date {
     width: 20%;
 }
@@ -256,15 +275,6 @@ body {
 }
 .size {
     text-align: right;
-}
-
-td {
-    /*border: solid white 1px;*/
-}
-
-tr:hover {
-    border: solid white 1px;
-    background-color: red;
 }
 
 .streamTime {
