@@ -56,3 +56,6 @@ class database:
         self.cursor.execute(sqlReq)
         self.connection.commit()
         return sqlReq
+
+    def close(self):
+        self.connection.close()
