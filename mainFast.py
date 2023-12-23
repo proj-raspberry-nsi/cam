@@ -213,5 +213,23 @@ def download_past_vid():
             print(res) # sinon, affichage de l'erreur
     return Response(status_code=204)
 
+@app.get('/download_nthvid/')
+def download_nthvid(vidID:int):
+    db = database.database("database.db")
+    fileStorage = db.getAll("fileStorage")
+    vidPath = fileStorage[vidID][1]
+    return FileResponse(vidPath)
+
+@app.get('/delete_nthvid/')
+def delete_nthvid(vidID:int):
+    db = database.database("database.db")
+    db.delete("fileStorage", "ID_F", vidID)
+    db.delete("fileMetaData", "ID_F", vidID)
+    fileStorage = db.getAll("fileStorage")
+    for i in range(vidID, len(fileStorage)):
+        db.update("fileStorage", "ID_F", str(i), "ID_F", str(i-1))
+        db.update("fileMetaData", "ID_F", str(i), "ID_F", str(i-1))
+    return Response(status_code=200)
+
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)

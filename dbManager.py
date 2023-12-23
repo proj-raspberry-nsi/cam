@@ -30,6 +30,12 @@ class database:
         self.connection.commit()
         return sqlReq
 
+    def update(self, tableName:str, conDkey:str, conDvalue:str, key:str, newValue:str):
+        sqlReq = f"UPDATE {tableName} SET {key} = {newValue} WHERE {conDkey} = {conDvalue}"
+        self.cursor.execute(sqlReq)
+        self.connection.commit()
+        return sqlReq
+
     def getAll(self, tableName:str):
         sqlReq = f"SELECT * FROM {tableName};"
         sqlRes = self.connection.execute(sqlReq)

@@ -65,6 +65,9 @@ body {
     border-radius: 10px;
     background-color: var(--menu-bg-color);
     text-align: center;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #menuHeader {
@@ -241,9 +244,6 @@ body {
     max-height: 9.1em;
     overflow: hidden;
     overflow-y: scroll;
-    cursor: default;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 #histList {
@@ -317,12 +317,9 @@ td {
 }
 
 #vidDetailList {
-    /*margin: 10px 10px 0 10px;
-    width: calc(100% - 20px);
-    height: calc(100% - 10px);*/
-    margin: 0px 1px;
-    width: calc(100% - 2px);
-    height: 100%;
+    margin: 3px 4px;
+    width: calc(100% - 8px);
+    height: calc(100% - 6px);
 }
 
 .borderCell {
@@ -359,10 +356,15 @@ td {
 #histDownload {
     color: lightblue;
     border: solid 2px lightblue;
-    border-radius: 3px 3px 3px 9px;
+    border-radius: 3px 3px 3px 7px;
 }
 #histDelete {
     color: lightcoral;
     border: solid 2px lightcoral;
-    border-radius: 3px 3px 9px 3px;
+    border-radius: 3px 3px 7px 3px;
+}#histDownload:hover {
+    opacity: .75;
+}
+#histDelete:hover {
+    opacity: .75;
 }

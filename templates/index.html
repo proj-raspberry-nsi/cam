@@ -43,6 +43,19 @@
         function downloadPastVid() {
             document.getElementById('download_pastvid').click();
         }
+        function download_nthvid(vidID) {
+            var button = document.getElementById('download_nthvid');
+            var url = '{{url_for("download_nthvid")}}' + '?vidID=' + vidID;
+            button.setAttribute('href',url);
+            button.click();
+        }
+        function delete_nthvid(vidID) {
+            if (confirm("Êtes-vous bien sûr de vouloir supprimer l'enregistrement n°"+vidID) === true) {
+                var button = document.getElementById('delete_nthvid');
+                var url = '{{url_for("delete_nthvid")}}' + '?vidID=' + vidID;
+                new Image().src = url;
+            }
+        }
 
         const vidsDetails = Array.from(JSON.parse('{{ dataHistJson|safe }}'));
         function displayVidDetails() {
@@ -51,6 +64,9 @@
         }
         function getVidDetails(vidID) {
             displayVidDetails();
+            document.getElementById('histDownload').setAttribute('onclick','download_nthvid('+ vidID +');');
+            document.getElementById('histDelete').setAttribute('onclick','delete_nthvid('+ vidID +');');
+
             vidID = vidsDetails.length - vidID - 1;
             var vidDetails = vidsDetails[vidID];
             document.getElementById('vidDetailsID').innerHTML = "n°"+vidDetails[0];
@@ -136,6 +152,7 @@
     <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
     <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
     <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download style="visibility: hidden"></a>
+    <a id='download_nthvid' href='{{url_for("download_nthvid")}}' download style="visibility: hidden"></a>
     <script>
         const dateOpt = {day: 'numeric', month: '2-digit', year: 'numeric'};
         const hourOpt = {second:'2-digit', minute:'2-digit', hour:'numeric'};
