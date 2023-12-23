@@ -43,11 +43,34 @@
         function downloadPastVid() {
             document.getElementById('download_pastvid').click();
         }
+
+        const vidsDetails = Array.from(JSON.parse('{{ dataHistJson|safe }}'));
         function displayVidDetails() {
             var element = document.getElementById('vidDetails');
-            element.classList.toggle("vidDetailsDisplay");
+            element.classList.add("vidDetailsDisplay");
         }
+        function getVidDetails(vidID) {
+            displayVidDetails();
+            vidID = vidsDetails.length - vidID - 1;
+            var vidDetails = vidsDetails[vidID];
+            document.getElementById('vidDetailsID').innerHTML = "n°"+vidDetails[0];
 
+            if (vidDetails[5] === 1) {
+                document.getElementById('vidDetailsAuto').innerHTML =
+                    "<p style='line-height: .8em;margin: .2em 0 0 0;'>manuel <br/>" +
+                    "<span class='vidDetailsCaption' style='text-decoration: line-through;'>auto</span></p>";
+            } else {
+                document.getElementById('vidDetailsAuto').innerHTML =
+                    "<p style='line-height: .8em;margin: .2em 0 0 0;'>auto <br/>" +
+                    "<span class='vidDetailsCaption' style='text-decoration: line-through;'>manuel</span></p>";
+            }
+
+            document.getElementById('vidDetailsPeople').innerHTML =
+                vidDetails[6] + '<i class="fas fa-person fa-xs" style="margin-left: 2px;"></i>';
+
+            document.getElementById('vidDetailsPets').innerHTML =
+                vidDetails[7] + '<i class="fas fa-paw fa-2xs" style="margin-left: 2px;"></i>';
+        }
     </script>
     <script src="https://kit.fontawesome.com/e4d944b0e6.js" crossorigin="anonymous"></script>
 </head>
@@ -57,7 +80,7 @@
         <div id="menu">
             <div id="menuHeader">
                 <div id="title">
-                    <h3>Surveillance <br> Camera</h3>
+                    <h3>Caméra de<br> Surveillance</h3>
                 </div>
                 <div id="localTimeCont">
                     <p id="localTime"></p>
@@ -73,7 +96,7 @@
                 <table id="histList">
                     <tbody>
                     {%for i in dataHist%}
-                        <tr class="histListElem" onclick="displayVidDetails()">
+                        <tr class="histListElem" onclick="getVidDetails('{{ i[0] }}')">
                             <td class="histListId">{{ i[0] }}</td>
                             <td class="histListSize">{{ i[3] }}</td>
                             <td class="histListType">
@@ -94,10 +117,10 @@
                     <tbody>
                         <tr>
                             <td class="borderCell"></td>
-                            <td>a</td>
-                            <td>b</td>
-                            <td>c</td>
-                            <td>d</td>
+                            <td id="vidDetailsID"></td>
+                            <td id="vidDetailsAuto"></td>
+                            <td id="vidDetailsPeople"></td>
+                            <td id="vidDetailsPets"></td>
                             <td class="borderCell"></td>
                         </tr>
                         <tr>

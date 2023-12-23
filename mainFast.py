@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from picamera2 import Picamera2
 from libcamera import controls
-import uvicorn, cv2, datetime, os
+import uvicorn, cv2, datetime, os, json
 import telegramBot # import du programme qui gère la conversation via telegram
 import dbManager as database # import du programme qui gère la base de données
 import numpy as np
@@ -144,16 +144,20 @@ async def home(request: Request):
     global recording
     recording = False # arrète tout enregistrement potentiel si la page est re-chargée
     db = database.database("database.db")
-    fullTable = db.getAll("fileStorage")
-    fullTable.reverse()
+    fileStorage  = db.getAll("fileStorage")
+    fileMetaData = db.getAll("fileMetaData")
+    fileStorage.reverse()
+    fileMetaData.reverse()
     dataHist = []
-    for i in fullTable:
-        now = datetime.datetime.fromtimestamp(int(i[2]))
+    for i in range(len(fileStorage)):
+        now = datetime.datetime.fromtimestamp(int(fileStorage[i][2]))
         date = now.strftime("%d/%m")
         hour = now.strftime("%H:%M")
-        size = str(int(i[3])/10) + " Mo"
-        dataHist.append( (i[0], date, hour, size, i[4]) )
-    return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist})
+        size = str(int(fileStorage[i][3])/10) + " Mo"
+        dataHist.append(
+            (fileStorage[i][0], date, hour, size, fileStorage[i][4], fileMetaData[i][1], fileMetaData[i][2], fileMetaData[i][3])
+        )
+    return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist, "dataHistJson":json.dumps(dataHist)})
 
 # video en continu (stream) utilisée par la page principale
 @app.get('/video_feed')
