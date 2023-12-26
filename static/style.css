@@ -290,18 +290,18 @@ td {
 }
 
 
-#vidDetails {
+#fileDetails {
     margin-top: 0px;
     width: 100%;
     height: 0px;
     overflow: hidden;
 }
 
-.vidDetailsDisplay {
-    animation: displayVidDetails .3s ease-out;
+.fileDetailsDisplay {
+    animation: displayFileDetails .3s ease-out;
     animation-fill-mode: both;
 }
-@keyframes displayVidDetails {
+@keyframes displayFileDetails {
     0% {
         height: 0px;
         margin-top: 0px;
@@ -316,7 +316,7 @@ td {
     }
 }
 
-#vidDetailList {
+#fileDetailList {
     margin: 3px 4px;
     width: calc(100% - 8px);
     height: calc(100% - 6px);
@@ -325,32 +325,32 @@ td {
 .borderCell {
     width: 10px;
 }
-#vidDetailsID {
+#fileDetailsID {
     width: 25%;
     font-weight: bold;
     font-size: x-large;
 }
-#vidDetailsAuto {
+#fileDetailsAuto {
     width: 25%;
     font-weight: bold;
     font-size: large;
 }
-#vidDetailsPeople {
+#fileDetailsPeople {
     width: 20%;
     font-weight: bold;
     font-size: x-large;
 }
-#vidDetailsPets {
+#fileDetailsPets {
     width: 20%;
     font-weight: bold;
     font-size: x-large;
 }
-.vidDetailsCaption {
+.fileDetailsCaption {
     font-weight: normal;
     font-size: small;
 }
 
-#vidDetailList tr:nth-child(1) {
+#fileDetailList tr:nth-child(1) {
     line-height: 2.5em;
 }
 #histDownload {
@@ -362,9 +362,10 @@ td {
     color: lightcoral;
     border: solid 2px lightcoral;
     border-radius: 3px 3px 7px 3px;
-}#histDownload:hover {
+}
+#histDownload:hover {
     opacity: .75;
 }
 #histDelete:hover {
     opacity: .75;
-}
+}Ω

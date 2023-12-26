@@ -213,22 +213,27 @@ def download_past_vid():
             print(res) # sinon, affichage de l'erreur
     return Response(status_code=204)
 
-@app.get('/download_nthvid/')
-def download_nthvid(vidID:int):
+@app.get('/download_nthfile/')
+def download_nthfile(fileID:int):
     db = database.database("database.db")
     fileStorage = db.getAll("fileStorage")
-    vidPath = fileStorage[vidID][1]
-    return FileResponse(vidPath)
+    filePath = fileStorage[fileID][1]
+    db.close()
+    return FileResponse(filePath)
 
-@app.get('/delete_nthvid/')
-def delete_nthvid(vidID:int):
+@app.get('/delete_nthfile/')
+def delete_nthfile(fileID:int):
     db = database.database("database.db")
-    db.delete("fileStorage", "ID_F", vidID)
-    db.delete("fileMetaData", "ID_F", vidID)
     fileStorage = db.getAll("fileStorage")
-    for i in range(vidID, len(fileStorage)):
+    currentPath = os.path.realpath(os.path.dirname(__name__))
+    filePath = currentPath +"/"+ fileStorage[fileID][1]
+    os.remove(filePath)
+    db.delete("fileStorage", "ID_F", fileID)
+    db.delete("fileMetaData", "ID_F", fileID)
+    for i in range(fileID, len(fileStorage)+1):
         db.update("fileStorage", "ID_F", str(i), "ID_F", str(i-1))
         db.update("fileMetaData", "ID_F", str(i), "ID_F", str(i-1))
+    db.close()
     return Response(status_code=200)
 
 if __name__ == '__main__':

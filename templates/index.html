@@ -43,49 +43,57 @@
         function downloadPastVid() {
             document.getElementById('download_pastvid').click();
         }
-        function download_nthvid(vidID) {
-            var button = document.getElementById('download_nthvid');
-            var url = '{{url_for("download_nthvid")}}' + '?vidID=' + vidID;
+        function download_nthfile(fileID) {
+            var button = document.getElementById('download_nthfile');
+            var url = '{{url_for("download_nthfile")}}' + '?fileID=' + fileID;
             button.setAttribute('href',url);
             button.click();
         }
-        function delete_nthvid(vidID) {
-            if (confirm("Êtes-vous bien sûr de vouloir supprimer l'enregistrement n°"+vidID) === true) {
-                var button = document.getElementById('delete_nthvid');
-                var url = '{{url_for("delete_nthvid")}}' + '?vidID=' + vidID;
-                new Image().src = url;
+        function delete_nthfile(fileID) {
+            if (confirm("Êtes-vous bien sûr de vouloir supprimer l'enregistrement n°"+fileID) === true) {
+                var button = document.getElementById('delete_nthfile');
+                var url = '{{url_for("delete_nthfile")}}' + '?fileID=' + fileID;
+                var req = new XMLHttpRequest();
+                req.onreadystatechange =
+                    function() {
+                        if(this.readyState == 4 && this.status == 200){
+                            location.reload();
+                        }
+                    };
+                req.open("GET", url);
+                req.send();
             }
         }
 
-        const vidsDetails = Array.from(JSON.parse('{{ dataHistJson|safe }}'));
-        function displayVidDetails() {
-            var element = document.getElementById('vidDetails');
-            element.classList.add("vidDetailsDisplay");
+        const filesDetails = Array.from(JSON.parse('{{ dataHistJson|safe }}'));
+        function displayFileDetails() {
+            var element = document.getElementById('fileDetails');
+            element.classList.add("fileDetailsDisplay");
         }
-        function getVidDetails(vidID) {
-            displayVidDetails();
-            document.getElementById('histDownload').setAttribute('onclick','download_nthvid('+ vidID +');');
-            document.getElementById('histDelete').setAttribute('onclick','delete_nthvid('+ vidID +');');
+        function getFileDetails(fileID) {
+            displayFileDetails();
+            document.getElementById('histDownload').setAttribute('onclick','download_nthfile('+ fileID +');');
+            document.getElementById('histDelete').setAttribute('onclick','delete_nthfile('+ fileID +');');
 
-            vidID = vidsDetails.length - vidID - 1;
-            var vidDetails = vidsDetails[vidID];
-            document.getElementById('vidDetailsID').innerHTML = "n°"+vidDetails[0];
+            fileID = filesDetails.length - fileID - 1;
+            var fileDetails = filesDetails[fileID];
+            document.getElementById('fileDetailsID').innerHTML = "n°"+fileDetails[0];
 
-            if (vidDetails[5] === 1) {
-                document.getElementById('vidDetailsAuto').innerHTML =
+            if (fileDetails[5] === 1) {
+                document.getElementById('fileDetailsAuto').innerHTML =
                     "<p style='line-height: .8em;margin: .2em 0 0 0;'>manuel <br/>" +
-                    "<span class='vidDetailsCaption' style='text-decoration: line-through;'>auto</span></p>";
+                    "<span class='fileDetailsCaption' style='text-decoration: line-through;'>auto</span></p>";
             } else {
-                document.getElementById('vidDetailsAuto').innerHTML =
+                document.getElementById('fileDetailsAuto').innerHTML =
                     "<p style='line-height: .8em;margin: .2em 0 0 0;'>auto <br/>" +
-                    "<span class='vidDetailsCaption' style='text-decoration: line-through;'>manuel</span></p>";
+                    "<span class='fileDetailsCaption' style='text-decoration: line-through;'>manuel</span></p>";
             }
 
-            document.getElementById('vidDetailsPeople').innerHTML =
-                vidDetails[6] + '<i class="fas fa-person fa-xs" style="margin-left: 2px;"></i>';
+            document.getElementById('fileDetailsPeople').innerHTML =
+                fileDetails[6] + '<i class="fas fa-person fa-xs" style="margin-left: 2px;"></i>';
 
-            document.getElementById('vidDetailsPets').innerHTML =
-                vidDetails[7] + '<i class="fas fa-paw fa-2xs" style="margin-left: 2px;"></i>';
+            document.getElementById('fileDetailsPets').innerHTML =
+                fileDetails[7] + '<i class="fas fa-paw fa-2xs" style="margin-left: 2px;"></i>';
         }
     </script>
     <script src="https://kit.fontawesome.com/e4d944b0e6.js" crossorigin="anonymous"></script>
@@ -112,7 +120,7 @@
                 <table id="histList">
                     <tbody>
                     {%for i in dataHist%}
-                        <tr class="histListElem" onclick="getVidDetails('{{ i[0] }}')">
+                        <tr class="histListElem" onclick="getFileDetails('{{ i[0] }}')">
                             <td class="histListId">{{ i[0] }}</td>
                             <td class="histListSize">{{ i[3] }}</td>
                             <td class="histListType">
@@ -128,15 +136,15 @@
                     {%endfor%}
                 </table>
             </div>
-            <div class="menuBox" id="vidDetails">
-                <table id="vidDetailList">
+            <div class="menuBox" id="fileDetails">
+                <table id="fileDetailList">
                     <tbody>
                         <tr>
                             <td class="borderCell"></td>
-                            <td id="vidDetailsID"></td>
-                            <td id="vidDetailsAuto"></td>
-                            <td id="vidDetailsPeople"></td>
-                            <td id="vidDetailsPets"></td>
+                            <td id="fileDetailsID"></td>
+                            <td id="fileDetailsAuto"></td>
+                            <td id="fileDetailsPeople"></td>
+                            <td id="fileDetailsPets"></td>
                             <td class="borderCell"></td>
                         </tr>
                         <tr>
@@ -152,7 +160,7 @@
     <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
     <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
     <a id='download_pastvid' href='{{url_for("download_past_vid")}}' download style="visibility: hidden"></a>
-    <a id='download_nthvid' href='{{url_for("download_nthvid")}}' download style="visibility: hidden"></a>
+    <a id='download_nthfile' href='{{url_for("download_nthfile")}}' download style="visibility: hidden"></a>
     <script>
         const dateOpt = {day: 'numeric', month: '2-digit', year: 'numeric'};
         const hourOpt = {second:'2-digit', minute:'2-digit', hour:'numeric'};
