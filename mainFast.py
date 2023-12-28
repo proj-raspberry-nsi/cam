@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Response
+from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from picamera2 import Picamera2
 from libcamera import controls
 import uvicorn, cv2, datetime, os, json
@@ -9,19 +10,7 @@ import telegramBot # import du programme qui gère la conversation via telegram
 import dbManager as database # import du programme qui gère la base de données
 import numpy as np
 
-db = database.database("database.db")
-if not db.getTables():
-    db.createTable("fileStorage", {"ID_F":"INT PRIMARY KEY",
-                                   "PATH_F":"TEXT",
-                                   "DATE_F":"INT",
-                                   "SIZE_F":"SMALLINT",
-                                   "TYPE_F": "BIT"})
-    db.createTable("fileMetaData", {"ID_F": "INT PRIMARY KEY",
-                                    "MANUAL_OR_AUTO": "BIT",
-                                    "NB_PEOPLE": "TINYINT",
-                                    "NB_PETS": "TINYINT"})
-db.close()
-
+security = HTTPBasic()
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -47,11 +36,17 @@ recording = False # booléen : True lorqu'un enregistrement ponctuel est en cour
 videoLen = 300     # pour la video en continu
 bufferMaxLen = 800 # pour un enregistrement ponctuel
 
+with open('loginInfos.json', 'r') as file: # récupération du token
+    loginInfos = json.load(file)
+recoveryMode = False
+
+
 # INITIALISATION DU BOT TELEGRAM
 with open('telegramToken.bin', 'rb') as file: # récupération du token
     telegramToken = file.read().decode()
 telegram = telegramBot.MessageBot(telegramToken) # initialisation
 telegram.chatID = -4079156108 # ID de la conversation
+# INITIALISATION DU BOT TELEGRAM
 
 def saveToDB(path, timestamp, vid_or_pic, manual_or_auto):
     db = database.database("database.db")
@@ -138,103 +133,152 @@ def gen_frames():
         frameStream = buff.tobytes()
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frameStream + b'\r\n')
 
+
+def verification(creds: HTTPBasicCredentials = Depends(security)):
+    global recoveryMode, loginInfos
+    username = creds.username
+    password = creds.password
+    if recoveryMode:
+        loginInfos["main"]["username"] = creds.username
+        loginInfos["main"]["password"] = creds.password
+        with open('loginInfos.json', 'w') as file:
+            json.dump(loginInfos, file)
+        recoveryMode = False
+        return True
+    elif username == loginInfos["main"]["username"] and password == loginInfos["main"]["password"]:
+        return True
+    elif username == loginInfos["recovery"]["username"] and password == loginInfos["recovery"]["password"]:
+        recoveryMode = True
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return False
+
 # page principale
 @app.get('/', response_class=HTMLResponse)
-async def home(request: Request):
-    global recording
-    recording = False # arrète tout enregistrement potentiel si la page est re-chargée
-    db = database.database("database.db")
-    fileStorage  = db.getAll("fileStorage")
-    fileMetaData = db.getAll("fileMetaData")
-    fileStorage.reverse()
-    fileMetaData.reverse()
-    dataHist = []
-    for i in range(len(fileStorage)):
-        now = datetime.datetime.fromtimestamp(int(fileStorage[i][2]))
-        date = now.strftime("%d/%m")
-        hour = now.strftime("%H:%M")
-        size = str(int(fileStorage[i][3])/10) + " Mo"
-        dataHist.append(
-            (fileStorage[i][0], date, hour, size, fileStorage[i][4], fileMetaData[i][1], fileMetaData[i][2], fileMetaData[i][3])
+async def home(request: Request, Verifcation = Depends(verification), showLogin:int = 0):
+    if Verifcation:
+        if showLogin:
+            return RedirectResponse("/")
+        global recording
+        recording = False # arrète tout enregistrement potentiel si la page est re-chargée
+        db = database.database("database.db")
+        fileStorage  = db.getAll("fileStorage")
+        fileMetaData = db.getAll("fileMetaData")
+        fileStorage.reverse()
+        fileMetaData.reverse()
+        dataHist = []
+        for i in range(len(fileStorage)):
+            now = datetime.datetime.fromtimestamp(int(fileStorage[i][2]))
+            date = now.strftime("%d/%m")
+            hour = now.strftime("%H:%M")
+            size = str(int(fileStorage[i][3])/10) + " Mo"
+            dataHist.append(
+                (fileStorage[i][0], date, hour, size, fileStorage[i][4], fileMetaData[i][1], fileMetaData[i][2], fileMetaData[i][3])
+            )
+        return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist, "dataHistJson":json.dumps(dataHist)})
+    elif not showLogin:
+        return RedirectResponse("/recovery?wrongPass=1")
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
         )
-    return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist, "dataHistJson":json.dumps(dataHist)})
 
 # video en continu (stream) utilisée par la page principale
 @app.get('/video_feed')
-async def video_feed():
-    return StreamingResponse(gen_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+async def video_feed(Verifcation = Depends(verification)):
+    if Verifcation:
+        return StreamingResponse(gen_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 # lien de capture et télechargement d'une image
 @app.get('/download_current_img')
-def download_current_img():
-    frame = camera.capture_array("main")
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    if frame.shape[:2] == (rawImgSize[1], rawImgSize[0]): # si la camera est disponible
-        timestamp = int(datetime.datetime.now().timestamp())
-        path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
-        frame = timestampImg(frame, timestamp, videoImgSize, font) # ajout de l'heure en bas à gauche de l'image
-        cv2.imwrite(path,frame) # enregistrement de l'image
-        saveToDB(path, timestamp, 0, 1)
-        return FileResponse(path) # envoi du fichier
-    else:
-        return Response(status_code=204)
+def download_current_img(Verifcation = Depends(verification)):
+    if Verifcation:
+        frame = camera.capture_array("main")
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if frame.shape[:2] == (rawImgSize[1], rawImgSize[0]): # si la camera est disponible
+            timestamp = int(datetime.datetime.now().timestamp())
+            path = f'{paths["pics"]}/img{timestamp}.jpg' # créatiion du chemin de dossier pour l'enregistrement
+            frame = timestampImg(frame, timestamp, videoImgSize, font) # ajout de l'heure en bas à gauche de l'image
+            cv2.imwrite(path,frame) # enregistrement de l'image
+            saveToDB(path, timestamp, 0, 1)
+            return FileResponse(path) # envoi du fichier
+        else:
+            return Response(status_code=204)
 
 # lien de capture puis de télechargement d'une video
 @app.get('/download_current_vid')
-def download_current_vid():
-    global recording, frames
-    if recording: # si l'enregistrement est en cours
-        if frames:
-            recording = False # arret de l'enregistrement
+def download_current_vid(Verifcation = Depends(verification)):
+    if Verifcation:
+        global recording, frames
+        if recording: # si l'enregistrement est en cours
+            if frames:
+                recording = False # arret de l'enregistrement
+                timestamp = int(datetime.datetime.now().timestamp())
+                vid = frames.copy() # création d'une copie (indépendante) de la liste d'images pour éviter que d'autres frames ne soient ajoutées pendant l'execution de "saveVid"
+                res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
+                if not res: # si la compilation s'est déroulée comme prévu
+                    saveToDB(path, timestamp, 1, 1)
+                    return FileResponse(path) # envoi du fichier
+            else:
+                print("empty set")
+        else:
+            recording = True # debut de l'enregistrement
+            resetFrames(10) # réinitialisation du buffer
+            return Response(status_code=200)
+        return Response(status_code=204)
+
+# lien télechargement de la video en prise en continu
+@app.get('/download_past_vid')
+def download_past_vid(Verifcation = Depends(verification)):
+    if Verifcation:
+        if frames: # si l'enregistrement en continu a débuté
             timestamp = int(datetime.datetime.now().timestamp())
-            vid = frames.copy() # création d'une copie (indépendante) de la liste d'images pour éviter que d'autres frames ne soient ajoutées pendant l'execution de "saveVid"
+            vid = frames.copy()
             res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
             if not res: # si la compilation s'est déroulée comme prévu
                 saveToDB(path, timestamp, 1, 1)
                 return FileResponse(path) # envoi du fichier
-        else:
-            print("empty set")
-    else:
-        recording = True # debut de l'enregistrement
-        resetFrames(10) # réinitialisation du buffer
-    return Response(status_code=204)
-
-# lien télechargement de la video en prise en continu
-@app.get('/download_past_vid')
-def download_past_vid():
-    if frames: # si l'enregistrement en continu a débuté
-        timestamp = int(datetime.datetime.now().timestamp())
-        vid = frames.copy()
-        res, path = saveVid(vid, vid[0][1], timestamp) # compilation de la video
-        if not res: # si la compilation s'est déroulée comme prévu
-            saveToDB(path, timestamp, 1, 1)
-            return FileResponse(path) # envoi du fichier
-        else:
-            print(res) # sinon, affichage de l'erreur
-    return Response(status_code=204)
+            else:
+                print(res) # sinon, affichage de l'erreur
+        return Response(status_code=204)
 
 @app.get('/download_nthfile/')
-def download_nthfile(fileID:int):
-    db = database.database("database.db")
-    fileStorage = db.getAll("fileStorage")
-    filePath = fileStorage[fileID][1]
-    db.close()
-    return FileResponse(filePath)
+def download_nthfile(fileID:int, Verifcation = Depends(verification)):
+    if Verifcation:
+        db = database.database("database.db")
+        fileStorage = db.getAll("fileStorage")
+        filePath = fileStorage[fileID][1]
+        db.close()
+        return FileResponse(filePath)
 
 @app.get('/delete_nthfile/')
-def delete_nthfile(fileID:int):
-    db = database.database("database.db")
-    fileStorage = db.getAll("fileStorage")
-    currentPath = os.path.realpath(os.path.dirname(__name__))
-    filePath = currentPath +"/"+ fileStorage[fileID][1]
-    os.remove(filePath)
-    db.delete("fileStorage", "ID_F", fileID)
-    db.delete("fileMetaData", "ID_F", fileID)
-    for i in range(fileID, len(fileStorage)+1):
-        db.update("fileStorage", "ID_F", str(i), "ID_F", str(i-1))
-        db.update("fileMetaData", "ID_F", str(i), "ID_F", str(i-1))
-    db.close()
-    return Response(status_code=200)
+def delete_nthfile(fileID:int, Verifcation = Depends(verification)):
+    if Verifcation:
+        db = database.database("database.db")
+        fileStorage = db.getAll("fileStorage")
+        currentPath = os.path.realpath(os.path.dirname(__name__))
+        filePath = currentPath +"/"+ fileStorage[fileID][1]
+        os.remove(filePath)
+        db.delete("fileStorage", "ID_F", fileID)
+        db.delete("fileMetaData", "ID_F", fileID)
+        for i in range(fileID, len(fileStorage)+1):
+            db.update("fileStorage", "ID_F", str(i), "ID_F", str(i-1))
+            db.update("fileMetaData", "ID_F", str(i), "ID_F", str(i-1))
+        db.close()
+        return Response(status_code=200)
+
+@app.get('/recovery', response_class=HTMLResponse)
+def recovery(request: Request, wrongPass:int = False):
+    return templates.TemplateResponse("recovery.html", {"request": request, "wrongPass": wrongPass})
+
+#@app.get('/logout', response_class=HTMLResponse)
+#def logout(request: Request):
+#    return RedirectResponse("/")
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)

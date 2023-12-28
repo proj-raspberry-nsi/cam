@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    {% if wrongPass %}
+    <h2>Mot de Passe incorrect</h2>
+    {% else %}
+    <h2>Réinitialisation du Mot de Passe</h2>
+    {% endif %}
+    <p>
+        si vous souhaitez réinitialiser votre mot de passe, connectez vous avec les identifiants suivants :<br/>
+        <ul>
+            <li>username : "reset"</li>
+            <li>password : numéro à 6 chiffre au dos de la caméra</li>
+        </ul>
+        vous serez ensuite invité à entrer vos nouveaux identifiants, ceux-ci remplaceront les anciens dès la fin de l'opération.
+    </p>
+    {% if wrongPass %}
+    <button onclick="document.getElementById('login').click();">ré-essayer</button>
+    {% else %}
+    <button onclick="document.getElementById('login').click();">login</button>
+    {% endif %}
+
+    <a id='login' href='{{url_for("home")}}?showLogin=1' style="visibility: hidden"></a>
+</body>
+</html>Ω

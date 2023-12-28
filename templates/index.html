@@ -25,11 +25,18 @@
                 recPastSecs.disabled = false;
                 recording = false;
             } else {
-                new Image().src = '{{ url_for("download_current_vid") }}';
-                element.className = "menuBox startRecBlinking";
-                recPastSecs.className = "menuBox unclickable";
-                recPastSecs.disabled = true;
-                recording = true;
+                var req = new XMLHttpRequest();
+                req.onreadystatechange =
+                    function() {
+                        if(this.readyState == 4 && this.status == 200){
+                            element.className = "menuBox startRecBlinking";
+                            recPastSecs.className = "menuBox unclickable";
+                            recPastSecs.disabled = true;
+                            recording = true;
+                        }
+                    };
+                req.open("GET", '{{ url_for("download_current_vid") }}');
+                req.send();
             }
             console.log(recPastSecs.disabled);
         }
@@ -119,7 +126,7 @@
             <div class="menuBox" id="histVids">
                 <table id="histList">
                     <tbody>
-                    {%for i in dataHist%}
+                    {% for i in dataHist %}
                         <tr class="histListElem" onclick="getFileDetails('{{ i[0] }}')">
                             <td class="histListId">{{ i[0] }}</td>
                             <td class="histListSize">{{ i[3] }}</td>
@@ -133,7 +140,7 @@
                             <td class="histListDate">{{ i[1] }}</td>
                             <td class="histListHour">{{ i[2] }}</td>
                         </tr>
-                    {%endfor%}
+                    {% endfor %}
                 </table>
             </div>
             <div class="menuBox" id="fileDetails">
