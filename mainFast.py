@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from gpiozero import MotionSensor
 from picamera2 import Picamera2
 from libcamera import controls
-import uvicorn, cv2, datetime, os, json
+import uvicorn, cv2, datetime, os, json, asyncio
 import telegramBot # import du programme qui gère la conversation via telegram
 import dbManager as database # import du programme qui gère la base de données
 import numpy as np
@@ -31,6 +32,7 @@ paths = {'pics':'data/saved_frames',
          'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
 frames = [] # buffer contenant toutes les images pour l'enregistrement video (ponctuel et en continu)
 recording = False # booléen : True lorqu'un enregistrement ponctuel est en cours
+streamingState = False # booléen : True lorque la diffusion en direct est en cours
 
 # NOMBRE DE FRAMES MAXIMALES
 videoLen = 300     # pour la video en continu
@@ -111,28 +113,32 @@ def saveVid(frames,tStart:int,tStop:int)->[str,str]:
         resetFrames(videoLen) # le buffer (frames) est reset pour ne pas accumuler des données inutiles
         return None, path
 
-def gen_frames():
+def captureFrame():
+    global frames
+    frame = camera.capture_array("main")
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # on redimensionne les images
+    frameRecord = cv2.resize(frame, videoImgSize)
+    frameStream = cv2.resize(frame, streamImgSize)
+
+    # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
+    frames.append([frameRecord, datetime.datetime.now().timestamp()])
+    if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
+        frames.pop(0)
+    return frameStream
+
+def genFrames():
     u"""
     fonction génératrice untiliée pour l'affichage en streaming et pour l'enregistrement des nouvelles frames dans le buffer (frames)
     """
     global frames, recording
     while True:
-        frame = camera.capture_array("main")
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        # on redimensionne les images
-        frameRecord = cv2.resize(frame, videoImgSize)
-        frameStream = cv2.resize(frame, streamImgSize)
-
-        # ajout de la dernière image au buffer et suppression de la première si le buffer a atteint sa limite (qui dépend du mode d'enregistrement : continu ou ponctuel)
-        frames.append([frameRecord, datetime.datetime.now().timestamp()])
-        if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
-            frames.pop(0)
-
+        frameStream = captureFrame()
+        streamingState = True
         # encodage de l'image pour le stream
         ret, buff = cv2.imencode('.jpg', frameStream)
         frameStream = buff.tobytes()
         yield (b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + frameStream + b'\r\n')
-
 
 def verification(creds: HTTPBasicCredentials = Depends(security)):
     global recoveryMode, loginInfos
@@ -156,6 +162,40 @@ def verification(creds: HTTPBasicCredentials = Depends(security)):
         )
     return False
 
+async def background_task():
+    pir = MotionSensor(4)
+    while True:
+        await asyncio.sleep(.5)
+        if not frames or datetime.datetime.now().timestamp() - frames[-1][1] >= 2:
+            vidLength = 0
+            recording = True  # debut de l'enregistrement
+            streamingState = False
+            resetFrames(10)  # réinitialisation du buffer
+            while pir.motion_detected and not streamingState:
+                frame = camera.capture_array("main")
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frameRecord = cv2.resize(frame, videoImgSize)
+                frames.append([frameRecord, datetime.datetime.now().timestamp()])
+                if len(frames) > bufferMaxLen or (len(frames) > videoLen and not recording):
+                    frames.pop(0)
+
+                await asyncio.sleep(0.03)
+                vidLength += 1
+            if vidLength >= 100:
+                vid = frames.copy()
+                timestamp = int(datetime.datetime.now().timestamp())
+                #res, path = saveVid(vid, vid[0][1], timestamp)
+                print("saving vid")
+                #if not res:
+                    #saveToDB(path, timestamp, 1, 0)
+                    #telegram.sendMessage(f"nouvel enregistrement")
+                    #telegram.sendVideo(path)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(background_task())
+
 # page principale
 @app.get('/', response_class=HTMLResponse)
 async def home(request: Request, Verifcation = Depends(verification), showLogin:int = 0):
@@ -178,7 +218,7 @@ async def home(request: Request, Verifcation = Depends(verification), showLogin:
             dataHist.append(
                 (fileStorage[i][0], date, hour, size, fileStorage[i][4], fileMetaData[i][1], fileMetaData[i][2], fileMetaData[i][3])
             )
-        return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist, "dataHistJson":json.dumps(dataHist)})
+        return templates.TemplateResponse("index.html", {"request": request, "dataHist":dataHist, "dataHistJson":json.dumps(dataHist), "telegramChatID":telegram.chatID})
     elif not showLogin:
         return RedirectResponse("/recovery?wrongPass=1")
     else:
@@ -192,7 +232,7 @@ async def home(request: Request, Verifcation = Depends(verification), showLogin:
 @app.get('/video_feed')
 async def video_feed(Verifcation = Depends(verification)):
     if Verifcation:
-        return StreamingResponse(gen_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
+        return StreamingResponse(genFrames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
 # lien de capture et télechargement d'une image
 @app.get('/download_current_img')
@@ -276,9 +316,10 @@ def delete_nthfile(fileID:int, Verifcation = Depends(verification)):
 def recovery(request: Request, wrongPass:int = False):
     return templates.TemplateResponse("recovery.html", {"request": request, "wrongPass": wrongPass})
 
-#@app.get('/logout', response_class=HTMLResponse)
-#def logout(request: Request):
-#    return RedirectResponse("/")
+@app.get('/changeTelegramChatID/')
+def logout(chatID:int, Verifcation = Depends(verification)):
+    telegram.chatID = int(chatID)
+    return RedirectResponse("/")
 
 if __name__ == '__main__':
     uvicorn.run(app, host='0.0.0.0', port=8000)

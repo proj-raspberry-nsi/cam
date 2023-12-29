@@ -163,6 +163,7 @@
             </div>
             {% endif %}
         </div>
+
     </div>
     <a id='download_img' href='{{url_for("download_current_img")}}' download style="visibility: hidden"></a>
     <a id='download_vid' href='{{url_for("download_current_vid")}}' download style="visibility: hidden"></a>
@@ -178,5 +179,14 @@
             document.getElementById('localTime').innerHTML = hour+"\n"+date;
         }, 1000);
     </script>
+    <footer>
+        <div id="telegramParams">
+            <form action="/changeTelegramChatID"  method="get">
+                <label for="chatID">Telegram Chat ID</label>
+                <input type="number" name="chatID" value="{{ telegramChatID }}">
+                <input type="submit">
+            </form>
+        </div>
+    </footer>
 </body>
 </html>

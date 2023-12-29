@@ -26,7 +26,7 @@ class MessageBot:
 
     def sendVideo(self, path, chatID=None):
         if chatID == None:
-            chatID = self.defaultchatID
+            chatID = self.chatID
         method = "sendPhoto"
         params = {'chat_id': chatID}
         file = {'video': (path, open(path,'rb'))}

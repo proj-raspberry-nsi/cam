@@ -33,6 +33,7 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     background-color: var(--bg-color);
     color: var(--body-txt-color);
+    overflow: hidden;
 }
 
 #container {
@@ -368,4 +369,51 @@ td {
 }
 #histDelete:hover {
     opacity: .75;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    height: 60px;
+    width: 100%;
+}
+
+#telegramParams {
+    position: relative;
+    float: right;
+    height: 100%;
+
+    padding: 0 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #2e5064;
+    transform: translateX(100%);
+    transition: transform .4s ease-in-out;
+}
+#telegramParams:hover {
+    transform: translateX(0%);
+}
+
+#telegramParams::before {
+    content: "\f2c6";
+    position: absolute;
+    left: 0;
+    height: 60px;
+    width: 60px;
+    transform: translateX(-100%);
+
+    font-family: "Font Awesome 5 Brands";
+    font-size: 260%;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    text-align: center;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px 0 0 0;
+    color: rgb(255,255,255,.6);
+    background-color: #6ec4f3;
 }
