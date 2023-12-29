@@ -29,7 +29,8 @@ camera.start()
 font = cv2.FONT_HERSHEY_DUPLEX # import de la typo pour l'affichage de l'heure sur les enregistrements
 
 paths = {'pics':'data/saved_frames',
-         'vids':'data/saved_videos'} # chemins de dossiers pour les images et videos générées
+         'vids':'data/saved_videos',
+         'db':'database.db'} # chemins de dossiers pour les images et videos générées
 frames = [] # buffer contenant toutes les images pour l'enregistrement video (ponctuel et en continu)
 recording = False # booléen : True lorqu'un enregistrement ponctuel est en cours
 streamingState = False # booléen : True lorque la diffusion en direct est en cours
@@ -42,7 +43,6 @@ with open('loginInfos.json', 'r') as file: # récupération du token
     loginInfos = json.load(file)
 recoveryMode = False
 
-
 # INITIALISATION DU BOT TELEGRAM
 with open('telegramToken.bin', 'rb') as file: # récupération du token
     telegramToken = file.read().decode()
@@ -50,8 +50,23 @@ telegram = telegramBot.MessageBot(telegramToken) # initialisation
 telegram.chatID = -4079156108 # ID de la conversation
 # INITIALISATION DU BOT TELEGRAM
 
+def createDB():
+    db = database.database(paths['db'])
+    if not db.getTables():
+        db.createTable("fileStorage", {"ID_F": "INT PRIMARY KEY",
+                                       "PATH_F": "TEXT",
+                                       "DATE_F": "INT",
+                                       "SIZE_F": "SMALLINT",
+                                       "TYPE_F": "BIT"})
+        db.createTable("fileMetaData", {"ID_F": "INT PRIMARY KEY",
+                                        "MANUAL_OR_AUTO": "BIT",
+                                        "NB_PEOPLE": "TINYINT",
+                                        "NB_PETS": "TINYINT"})
+    db.close()
+createDB()
+
 def saveToDB(path, timestamp, vid_or_pic, manual_or_auto):
-    db = database.database("database.db")
+    db = database.database(paths['db'])
     if db.getCol("fileStorage", "ID_F"):
         id = max(db.getCol("fileStorage", "ID_F")) + 1
     else:
@@ -151,15 +166,22 @@ def verification(creds: HTTPBasicCredentials = Depends(security)):
             json.dump(loginInfos, file)
         recoveryMode = False
         return True
-    elif username == loginInfos["main"]["username"] and password == loginInfos["main"]["password"]:
-        return True
     elif username == loginInfos["recovery"]["username"] and password == loginInfos["recovery"]["password"]:
         recoveryMode = True
+        if os.path.exists(paths['db']):
+            os.remove(paths['db'])
+        for fileToRemove in os.listdir(paths["pics"]):
+            os.remove(paths["pics"] +"/"+ fileToRemove)
+        for fileToRemove in os.listdir(paths["vids"]):
+            os.remove(paths["vids"] +"/"+ fileToRemove)
+        createDB()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="invalid credentials",
             headers={"WWW-Authenticate": "Basic"},
         )
+    elif username == loginInfos["main"]["username"] and password == loginInfos["main"]["password"]:
+        return True
     return False
 
 async def background_task():
@@ -184,12 +206,10 @@ async def background_task():
             if vidLength >= 100:
                 vid = frames.copy()
                 timestamp = int(datetime.datetime.now().timestamp())
-                #res, path = saveVid(vid, vid[0][1], timestamp)
-                print("saving vid")
-                #if not res:
-                    #saveToDB(path, timestamp, 1, 0)
-                    #telegram.sendMessage(f"nouvel enregistrement")
-                    #telegram.sendVideo(path)
+                res, path = saveVid(vid, vid[0][1], timestamp)
+                if not res:
+                    saveToDB(path, timestamp, 1, 0)
+                    telegram.sendVideo(path)
 
 
 @app.on_event("startup")
@@ -204,7 +224,7 @@ async def home(request: Request, Verifcation = Depends(verification), showLogin:
             return RedirectResponse("/")
         global recording
         recording = False # arrète tout enregistrement potentiel si la page est re-chargée
-        db = database.database("database.db")
+        db = database.database(paths['db'])
         fileStorage  = db.getAll("fileStorage")
         fileMetaData = db.getAll("fileMetaData")
         fileStorage.reverse()
@@ -290,7 +310,7 @@ def download_past_vid(Verifcation = Depends(verification)):
 @app.get('/download_nthfile/')
 def download_nthfile(fileID:int, Verifcation = Depends(verification)):
     if Verifcation:
-        db = database.database("database.db")
+        db = database.database(paths['db'])
         fileStorage = db.getAll("fileStorage")
         filePath = fileStorage[fileID][1]
         db.close()
@@ -299,7 +319,7 @@ def download_nthfile(fileID:int, Verifcation = Depends(verification)):
 @app.get('/delete_nthfile/')
 def delete_nthfile(fileID:int, Verifcation = Depends(verification)):
     if Verifcation:
-        db = database.database("database.db")
+        db = database.database(paths['db'])
         fileStorage = db.getAll("fileStorage")
         currentPath = os.path.realpath(os.path.dirname(__name__))
         filePath = currentPath +"/"+ fileStorage[fileID][1]
